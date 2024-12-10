@@ -1,2 +1,3 @@
 # java_uni_system
-I love 1 we enta el 1
+This is The Palace of Anwar (the King of GitHub)
+And Fk any nigger called Hussen
