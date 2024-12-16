@@ -19,6 +19,7 @@ public class ExcelUtils {
         }
     }
 
+    // Get all users from the Excel file
     public static List<Map<String, String>> getUsers() {
         List<Map<String, String>> users = new ArrayList<>();
         for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {  // Skip the header row
@@ -35,17 +36,31 @@ public class ExcelUtils {
         return users;
     }
 
+    // Update the ticket for a student
     public static void updateUserTicket(String username, String ticket) throws IOException {
         for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {  // Skip the header row
             Row row = sheet.getRow(i);
             if (row.getCell(1).getStringCellValue().equals(username)) {
                 row.createCell(5).setCellValue(ticket);
-                break; 
+                break;
             }
         }
         saveWorkbook();
     }
 
+    // Update grade for a student (Admin functionality)
+    public static void updateGrade(String username, String grade) throws IOException {
+        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {  // Skip the header row
+            Row row = sheet.getRow(i);
+            if (row.getCell(1).getStringCellValue().equals(username)) {
+                row.createCell(4).setCellValue(grade);
+                break;
+            }
+        }
+        saveWorkbook();
+    }
+
+    // Add a new student (Admin functionality)
     public static void addUser(String username, String password, String role) throws IOException {
         int lastRow = sheet.getPhysicalNumberOfRows();
         Row row = sheet.createRow(lastRow);
