@@ -4,78 +4,125 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.*;
 import java.util.*;
 
-public class ExcelUtils {
-    private static final String FILE_PATH = "student_grades.xlsx";
+public class StudentManager {
+    private static final String FILE_PATH = "student_grades.xlsx";  // Path to the Excel file
     private static Workbook workbook;
     private static Sheet sheet;
 
+    // Static block to initialize the workbook and sheet
     static {
         try {
             FileInputStream file = new FileInputStream(new File(FILE_PATH));
-            workbook = new XSSFWorkbook(file);
-            sheet = workbook.getSheetAt(0);
+            workbook = new XSSFWorkbook(file);  // Create a workbook instance
+            sheet = workbook.getSheetAt(0);  // Get the first sheet of the workbook
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Get all users from the Excel file
-    public static List<Map<String, String>> getUsers() {
-        List<Map<String, String>> users = new ArrayList<>();
-        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {  // Skip the header row
+    // Get all student records from the Excel file
+    private static List<Map<String, String>> getStudents() {
+        List<Map<String, String>> students = new ArrayList<>();
+        // Loop through rows of the sheet starting from row 1 (to skip headers)
+        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
             Row row = sheet.getRow(i);
-            Map<String, String> user = new HashMap<>();
-            user.put("ID", row.getCell(0).getStringCellValue());
-            user.put("Username", row.getCell(1).getStringCellValue());
-            user.put("Password", row.getCell(2).getStringCellValue());
-            user.put("Role", row.getCell(3).getStringCellValue());
-            user.put("Grade", row.getCell(4).getStringCellValue());
-            user.put("Ticket", row.getCell(5) != null ? row.getCell(5).getStringCellValue() : "");
-            users.add(user);
+            Map<String, String> student = new HashMap<>();
+            student.put("ID", String.valueOf(row.getCell(0).getNumericCellValue()));  // Student ID
+            student.put("Username", row.getCell(1).getStringCellValue());  // Username
+            student.put("Password", row.getCell(2).getStringCellValue());  // Password
+            student.put("Grade", row.getCell(4).getStringCellValue());  // Grade
+            student.put("Ticket", row.getCell(5) != null ? row.getCell(5).getStringCellValue() : "");  // Ticket number
+            students.add(student);
         }
-        return users;
+        return students;
     }
 
-    // Update the ticket for a student
-    public static void updateUserTicket(String username, String ticket) throws IOException {
-        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {  // Skip the header row
+    // Authenticate student login using username and password
+    public static boolean login(String username, String password) {
+        List<Map<String, String>> students = getStudents();
+        // Loop through the student list and check for valid username and password
+        for (Map<String, String> student : students) {
+            if (student.get("Username").equals(username) && student.get("Password").equals(password)) {
+                return true;  // Successful login
+            }
+        }
+        return false;  // Failed login
+    }
+
+    // Get the details of a specific student
+    public static Map<String, String> getStudentDetails(String username) {
+        List<Map<String, String>> students = getStudents();
+        // Search for the student by username and return their details
+        for (Map<String, String> student : students) {
+            if (student.get("Username").equals(username)) {
+                return student;  // Return student details if found
+            }
+        }
+        return null;  // If student not found
+    }
+
+    // Request a new ticket (student's request)
+    public static void requestNewTicket(String username, String newTicket) throws IOException {
+        // Loop through each student to find the username and update the ticket
+        boolean found = false;
+        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
             Row row = sheet.getRow(i);
             if (row.getCell(1).getStringCellValue().equals(username)) {
-                row.createCell(5).setCellValue(ticket);
+                found = true;
+                // Check if a ticket exists and update it
+                if (row.getCell(5) != null) {
+                    row.getCell(5).setCellValue(newTicket);  // Replace existing ticket
+                } else {
+                    row.createCell(5).setCellValue(newTicket);  // Create a new ticket if not already present
+                }
+                System.out.println("Ticket request for " + username + " has been successfully processed.");
                 break;
             }
         }
-        saveWorkbook();
-    }
-
-    // Update grade for a student (Admin functionality)
-    public static void updateGrade(String username, String grade) throws IOException {
-        for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {  // Skip the header row
-            Row row = sheet.getRow(i);
-            if (row.getCell(1).getStringCellValue().equals(username)) {
-                row.createCell(4).setCellValue(grade);
-                break;
-            }
+        
+        if (!found) {
+            System.out.println("Username not found. Ticket request failed.");
         }
-        saveWorkbook();
+
+        saveChanges();  // Save the changes to the Excel file
     }
 
-    // Add a new student (Admin functionality)
-    public static void addUser(String username, String password, String role) throws IOException {
-        int lastRow = sheet.getPhysicalNumberOfRows();
-        Row row = sheet.createRow(lastRow);
-        row.createCell(0).setCellValue(lastRow); // ID
-        row.createCell(1).setCellValue(username);
-        row.createCell(2).setCellValue(password);
-        row.createCell(3).setCellValue(role);
-        row.createCell(4).setCellValue(""); // Grade initially empty
-        row.createCell(5).setCellValue(""); // Ticket initially empty
-        saveWorkbook();
+    // Save the workbook (after making any changes)
+    private static void saveChanges() throws IOException {
+        try (FileOutputStream fileOut = new FileOutputStream(FILE_PATH)) {
+            workbook.write(fileOut);  // Write changes to the Excel file
+        }
     }
 
-    private static void saveWorkbook() throws IOException {
-        FileOutputStream fileOut = new FileOutputStream(FILE_PATH);
-        workbook.write(fileOut);
-        fileOut.close();
+    // Main method for testing purposes
+    public static void main(String[] args) {
+        // Simulate login with username and password
+        String username = "student1";  // Replace with actual username input
+        String password = "password123";  // Replace with actual password input
+
+        // Check if login is successful
+        if (login(username, password)) {
+            System.out.println("Login successful!");
+
+            // Fetch and display student details
+            Map<String, String> studentDetails = getStudentDetails(username);
+            if (studentDetails != null) {
+                System.out.println("Student Details:");
+                System.out.println("Username: " + studentDetails.get("Username"));
+                System.out.println("Grade: " + studentDetails.get("Grade"));
+                System.out.println("Ticket: " + studentDetails.get("Ticket"));
+            }
+
+            // Simulate ticket request (for demonstration purposes)
+            try {
+                String newTicket = "XYZ123";
+                requestNewTicket(username, newTicket);  // Request a new ticket
+            } catch (IOException e) {
+                System.out.println("Error processing ticket request: " + e.getMessage());
+            }
+
+        } else {
+            System.out.println("Invalid username or password.");
+        }
     }
 }
