@@ -6,7 +6,7 @@ public class LoginPage {
     private JFrame frame;
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private Admin admin;3
+    private Admin admin;
 
     public LoginPage(Admin admin) {
         this.admin = admin;
